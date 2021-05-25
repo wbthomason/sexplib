@@ -144,6 +144,14 @@ struct VectorSexp {
   VectorSexp* parent;
 };
 
-struct MapSexp {};
+struct Sexp {
+  std::string_view head;
+  std::optional<std::vector<Sexp>> tail;
+  Sexp() noexcept : head(), tail(std::nullopt), parent(nullptr) {}
+  Sexp(Sexp* parent) noexcept : head(), tail(std::nullopt), parent(parent) {}
+
+ private:
+  Sexp* parent;
+};
 
 }  // namespace sexp
