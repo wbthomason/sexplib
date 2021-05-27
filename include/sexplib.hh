@@ -115,6 +115,17 @@ struct VectorSexp {
              std::variant<std::string_view, std::vector<VectorSexp>>&& data) noexcept
   : data(data), parent(parent) {}
 
+  template <Deserializable T> friend T parse(const std::string& sexp_data);
+  template <Deserializable T>
+  friend void push_current_token(bool& non_empty,
+                                 T* result,
+                                 std::string::const_iterator& start,
+                                 std::string::const_iterator& current,
+                                 const std::string::const_iterator& end);
+  friend void
+  skip_until_non_blank(std::string::const_iterator& it, const std::string::const_iterator& end);
+
+ private:
   void
   push_atom(const std::string::const_iterator& start, const std::string::const_iterator& end) {
     assert(std::holds_alternative<std::vector<VectorSexp>>(data));
@@ -140,7 +151,6 @@ struct VectorSexp {
     return this;
   }
 
- private:
   VectorSexp* parent;
 };
 
