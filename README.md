@@ -3,6 +3,7 @@ A simple header-only library for parsing s-expressions to C++ structures
 
 ## Dependencies
 Only [catch2](https://github.com/catchorg/Catch2) if you intend to build tests.
+You need a C++20 capable compiler; `sexplib` uses concepts.
 
 ## Installation
 Copy `include/sexplib.hh` to your project, or use the `meson` install target (will also build, but not install, tests unless configured otherwise).
