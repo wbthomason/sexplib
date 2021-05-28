@@ -34,7 +34,7 @@ TEST_CASE("We can parse an empty list") {
   REQUIRE(data_list.size() == 0);
 }
 
-inline bool all_atoms_equal(const std::vector<std::string>& atoms, const VS& result) {
+inline bool flat_all_atoms_equal(const std::vector<std::string>& atoms, const VS& result) {
   const auto result_atoms = std::get<std::vector<VS>>(result.data);
   for (size_t i = 0; i < atoms.size(); ++i) {
     REQUIRE(std::holds_alternative<std::string_view>(result_atoms[i].data));
@@ -53,7 +53,7 @@ TEST_CASE("We can parse a flat s-expression") {
   "foo", "bar", "baz", "bax", "5.3", "\"hello\"", "\"\\\"there you\"", ":bam"};
   auto result = sexp::parse<VS>(sexp_data);
   REQUIRE(std::holds_alternative<std::vector<VS>>(result.data));
-  REQUIRE(all_atoms_equal(atoms, result));
+  REQUIRE(flat_all_atoms_equal(atoms, result));
 }
 
 
@@ -86,5 +86,5 @@ TEST_CASE("We can handle unusual whitespace") {
   auto result                          = sexp::parse<VS>(sexp_data);
   const std::vector<std::string> atoms = {"foo", "bar", "baz", "\" bax\n\tbam \""};
   REQUIRE(std::holds_alternative<std::vector<VS>>(result.data));
-  REQUIRE(all_atoms_equal(atoms, result));
+  REQUIRE(flat_all_atoms_equal(atoms, result));
 }
