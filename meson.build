@@ -1,5 +1,10 @@
 project('sexplib', 'cpp', version : '0.1', default_options : ['warning_level=3', 'cpp_std=c++20'])
 
+if get_option('buildtype') == 'release'
+  add_project_arguments('-march=native', language: 'cpp')
+  add_project_arguments('-DNDEBUG', language: 'cpp')
+endif
+
 catch2 = dependency('catch2')
 
 sexplib_dep = declare_dependency(include_directories: include_directories('include'))
