@@ -4,9 +4,11 @@ catch2 = dependency('catch2')
 
 sexplib_dep = declare_dependency(include_directories: include_directories('include'))
 
-# Test executable
+# Test executables
 vectorsexp_test_exe = executable('vectorsexp_test', 'test/vectorsexp_test.cc', dependencies: [catch2, sexplib_dep])
 test('VectorSexp parsing tests', vectorsexp_test_exe)
+sexp_test_exe = executable('sexp_test', 'test/sexp_test.cc', dependencies: [catch2, sexplib_dep])
+test('Sexp parsing tests', sexp_test_exe)
 
 install_headers('include/sexplib.hh', subdir : 'sexplib')
 pkg_mod = import('pkgconfig')
