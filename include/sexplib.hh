@@ -143,6 +143,33 @@ struct VectorSexp {
     return this;
   }
 
+  std::optional<VectorSexp*> find(const std::string& path) {
+    const auto first_slash = path.find('/');
+    if (first_slash == std::string::npos ||
+        std::holds_alternative<std::vector<VectorSexp>>(data)) {
+      const auto current_key =
+      std::string_view(path.begin(),
+                       first_slash == std::string::npos ? path.end() : path.begin() + first_slash);
+      const auto* const data_ptr = std::get_if<std::string_view>(&data);
+      if (data_ptr != nullptr && *data_ptr == current_key) {
+        return this;
+      }
+
+      auto* const data_list = std::get_if<std::vector<VectorSexp>>(&data);
+      if (data_list != nullptr) {
+        const auto remaining_path = path.substr(first_slash + 1);
+        for (auto& child : *data_list) {
+          const auto child_result = child.find(remaining_path);
+          if (child_result) {
+            return child_result;
+          }
+        }
+      }
+    }
+
+    return std::nullopt;
+  }
+
  private:
   VectorSexp* parent;
 };
@@ -186,6 +213,32 @@ struct Sexp {
     }
 
     return this;
+  }
+
+  std::optional<Sexp*> find(const std::string& path) {
+    if (head) {
+      const auto first_slash = path.find('/');
+      const auto current_key =
+      std::string_view(path.begin(),
+                       first_slash == std::string::npos ? path.end() : path.begin() + first_slash);
+      if (*head == current_key) {
+        if (first_slash == std::string::npos) {
+          return this;
+        }
+
+        if (tail) {
+          const auto remaining_path = path.substr(first_slash + 1);
+          for (auto& child : *tail) {
+            const auto child_result = child.find(remaining_path);
+            if (child_result) {
+              return child_result;
+            }
+          }
+        }
+      }
+    }
+
+    return std::nullopt;
   }
 
  private:

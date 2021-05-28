@@ -57,6 +57,16 @@ TEST_CASE("We can parse a flat s-expression") {
   REQUIRE(flat_all_atoms_equal(atoms, result));
 }
 
+TEST_CASE("Find works for flat s-expressions") {
+  const std::string sexp_data = "(foo bar baz bax 5.3 \"hello\" \"\\\"there you\" :bam)";
+  auto result                 = sexp::parse<VS>(sexp_data);
+  auto find_1                 = result.find("foo/bar");
+  auto find_2                 = result.find("foo/:bam");
+  REQUIRE(find_1);
+  REQUIRE(*find_1 == &std::get<std::vector<VS>>(result.data)[1]);
+  REQUIRE(find_2);
+  REQUIRE(*find_2 == &std::get<std::vector<VS>>(result.data)[7]);
+}
 
 TEST_CASE("We can parse nested s-expressions") {
   const std::string sexp_data = "(foo (bar baz (bax 5.3) \"hello\") \"\\\"there you\" :bam)";
@@ -80,6 +90,23 @@ TEST_CASE("We can parse nested s-expressions") {
   REQUIRE(std::get<std::string_view>(first_nested_list[3].data) == "\"hello\"");
   REQUIRE(std::get<std::string_view>(data_list[2].data) == "\"\\\"there you\"");
   REQUIRE(std::get<std::string_view>(data_list[3].data) == ":bam");
+}
+
+TEST_CASE("Find works for nested s-expressions") {
+  const std::string sexp_data = "(foo (bar baz (bax 5.3) \"hello\") \"\\\"there you\" :bam)";
+  auto result                 = sexp::parse<VS>(sexp_data);
+  auto find_1                 = result.find("foo/bar");
+  auto find_2                 = result.find("foo/bar/bax");
+  auto find_3                 = result.find("foo/:bam");
+  auto& data_list             = std::get<std::vector<VS>>(result.data);
+  auto& first_nested_list     = std::get<std::vector<VS>>(data_list[1].data);
+  auto& second_nested_list    = std::get<std::vector<VS>>(first_nested_list[2].data);
+  REQUIRE(find_1);
+  REQUIRE(*find_1 == &first_nested_list[0]);
+  REQUIRE(find_2);
+  REQUIRE(*find_2 == &second_nested_list[0]);
+  REQUIRE(find_3);
+  REQUIRE(*find_3 == &data_list[3]);
 }
 
 TEST_CASE("We can handle unusual whitespace") {
