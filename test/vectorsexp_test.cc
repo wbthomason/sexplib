@@ -5,6 +5,7 @@
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
 
+#define SEXPLIB_USE_VECTORSEXP
 #include "sexplib.hh"
 
 using VS = sexp::VectorSexp;

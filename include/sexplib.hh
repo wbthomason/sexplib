@@ -110,6 +110,7 @@ template <Deserializable T> T parse(const std::string& sexp_data) {
   return result;
 }
 
+#ifdef SEXPLIB_USE_VECTORSEXP
 struct VectorSexp {
   std::variant<std::string_view, std::vector<VectorSexp>> data;
   VectorSexp() noexcept : data(std::vector<VectorSexp>(0)), parent(nullptr) {}
@@ -145,6 +146,7 @@ struct VectorSexp {
  private:
   VectorSexp* parent;
 };
+#endif
 
 struct Sexp {
   std::optional<std::string_view> head;
