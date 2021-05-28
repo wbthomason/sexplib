@@ -17,38 +17,39 @@ T t, const std::string::const_iterator& start, const std::string::const_iterator
   { t.end_list() } -> std::same_as<T*>;
   // clang-format on
 };
+namespace {
+  void
+  skip_until_non_blank(std::string::const_iterator& it, const std::string::const_iterator& end) {
+    while (it != end) {
+      switch (*it) {
+        case ' ':
+        case '\t':
+        case '\n':
+          break;
+        default:
+          return;
+      };
 
-void skip_until_non_blank(std::string::const_iterator& it,
+      ++it;
+    }
+  }
+
+  template <Deserializable T>
+  void push_current_token(bool& non_empty,
+                          T* result,
+                          std::string::const_iterator& start,
+                          std::string::const_iterator& current,
                           const std::string::const_iterator& end) {
-  while (it != end) {
-    switch (*it) {
-      case ' ':
-      case '\t':
-      case '\n':
-        break;
-      default:
-        return;
-    };
+    if (non_empty) {
+      result->push_atom(start, current);
+      non_empty = false;
+    }
 
-    ++it;
+    start = current + 1;
+    skip_until_non_blank(start, end);
+    current = start - 1;
   }
-}
-
-template <Deserializable T>
-void push_current_token(bool& non_empty,
-                        T* result,
-                        std::string::const_iterator& start,
-                        std::string::const_iterator& current,
-                        const std::string::const_iterator& end) {
-  if (non_empty) {
-    result->push_atom(start, current);
-    non_empty = false;
-  }
-
-  start = current + 1;
-  skip_until_non_blank(start, end);
-  current = start - 1;
-}
+}  // namespace
 
 template <Deserializable T> T parse(const std::string& sexp_data) {
   auto start = sexp_data.begin();
@@ -108,27 +109,12 @@ template <Deserializable T> T parse(const std::string& sexp_data) {
   return result;
 }
 
-#define SEXP_MAKE_FRIENDS                                                   \
-  template <Deserializable T> friend T parse(const std::string& sexp_data); \
-  template <Deserializable T>                                               \
-  friend void push_current_token(bool& non_empty,                           \
-                                 T* result,                                 \
-                                 std::string::const_iterator& start,        \
-                                 std::string::const_iterator& current,      \
-                                 const std::string::const_iterator& end);   \
-  friend void skip_until_non_blank(std::string::const_iterator& it,         \
-                                   const std::string::const_iterator& end);
-
 struct VectorSexp {
   std::variant<std::string_view, std::vector<VectorSexp>> data;
   VectorSexp() noexcept : data(std::vector<VectorSexp>(0)), parent(nullptr) {}
   VectorSexp(VectorSexp* parent,
              std::variant<std::string_view, std::vector<VectorSexp>>&& data) noexcept
   : data(data), parent(parent) {}
-
- private:
-  SEXP_MAKE_FRIENDS
-  VectorSexp* parent;
 
   void
   push_atom(const std::string::const_iterator& start, const std::string::const_iterator& end) {
@@ -154,6 +140,9 @@ struct VectorSexp {
 
     return this;
   }
+
+ private:
+  VectorSexp* parent;
 };
 
 struct Sexp {
@@ -161,10 +150,6 @@ struct Sexp {
   std::optional<std::vector<Sexp>> tail;
   Sexp() noexcept : head(), tail(std::nullopt), parent(nullptr) {}
   Sexp(Sexp* parent) noexcept : head(), tail(std::nullopt), parent(parent) {}
-
- private:
-  SEXP_MAKE_FRIENDS
-  Sexp* parent;
 
   void
   push_atom(const std::string::const_iterator& start, const std::string::const_iterator& end) {
@@ -179,6 +164,8 @@ struct Sexp {
   Sexp* start_list() {}
 
   Sexp* end_list() {}
+ private:
+  Sexp* parent;
 };
 
 }  // namespace sexp
