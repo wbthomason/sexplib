@@ -150,20 +150,41 @@ struct Sexp {
   std::optional<std::vector<Sexp>> tail;
   Sexp() noexcept : head(), tail(std::nullopt), parent(nullptr) {}
   Sexp(Sexp* parent) noexcept : head(), tail(std::nullopt), parent(parent) {}
+  Sexp(Sexp* parent, std::string_view head) : head(head), tail(std::nullopt), parent(parent) {}
 
   void
   push_atom(const std::string::const_iterator& start, const std::string::const_iterator& end) {
-    if(!head) {
+    if (!head) {
       head.emplace(start, end);
-    }
-    else if (!tail) {
-      
+    } else if (!tail) {
+      tail.emplace({Sexp(this, std::string_view(start, end))});
+    } else {
+      tail->emplace_back(Sexp(this, std::string_view(start, end)));
     }
   }
 
-  Sexp* start_list() {}
+  Sexp* start_list() {
+    if (!head) {
+      return this;
+    }
 
-  Sexp* end_list() {}
+    if (!tail) {
+      tail.emplace({Sexp(this)});
+    } else {
+      tail->emplace_back(Sexp(this));
+    }
+
+    return &tail->back();
+  }
+
+  Sexp* end_list() {
+    if (parent != nullptr) {
+      return parent;
+    }
+
+    return this;
+  }
+
  private:
   Sexp* parent;
 };
