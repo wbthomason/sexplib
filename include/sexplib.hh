@@ -108,6 +108,17 @@ template <Deserializable T> T parse(const std::string& sexp_data) {
   return result;
 }
 
+#define SEXP_MAKE_FRIENDS                                                   \
+  template <Deserializable T> friend T parse(const std::string& sexp_data); \
+  template <Deserializable T>                                               \
+  friend void push_current_token(bool& non_empty,                           \
+                                 T* result,                                 \
+                                 std::string::const_iterator& start,        \
+                                 std::string::const_iterator& current,      \
+                                 const std::string::const_iterator& end);   \
+  friend void skip_until_non_blank(std::string::const_iterator& it,         \
+                                   const std::string::const_iterator& end);
+
 struct VectorSexp {
   std::variant<std::string_view, std::vector<VectorSexp>> data;
   VectorSexp() noexcept : data(std::vector<VectorSexp>(0)), parent(nullptr) {}
@@ -115,17 +126,10 @@ struct VectorSexp {
              std::variant<std::string_view, std::vector<VectorSexp>>&& data) noexcept
   : data(data), parent(parent) {}
 
-  template <Deserializable T> friend T parse(const std::string& sexp_data);
-  template <Deserializable T>
-  friend void push_current_token(bool& non_empty,
-                                 T* result,
-                                 std::string::const_iterator& start,
-                                 std::string::const_iterator& current,
-                                 const std::string::const_iterator& end);
-  friend void
-  skip_until_non_blank(std::string::const_iterator& it, const std::string::const_iterator& end);
-
  private:
+  SEXP_MAKE_FRIENDS
+  VectorSexp* parent;
+
   void
   push_atom(const std::string::const_iterator& start, const std::string::const_iterator& end) {
     assert(std::holds_alternative<std::vector<VectorSexp>>(data));
@@ -150,8 +154,6 @@ struct VectorSexp {
 
     return this;
   }
-
-  VectorSexp* parent;
 };
 
 struct Sexp {
@@ -161,7 +163,22 @@ struct Sexp {
   Sexp(Sexp* parent) noexcept : head(), tail(std::nullopt), parent(parent) {}
 
  private:
+  SEXP_MAKE_FRIENDS
   Sexp* parent;
+
+  void
+  push_atom(const std::string::const_iterator& start, const std::string::const_iterator& end) {
+    if(!head) {
+      head.emplace(start, end);
+    }
+    else if (!tail) {
+      
+    }
+  }
+
+  Sexp* start_list() {}
+
+  Sexp* end_list() {}
 };
 
 }  // namespace sexp
