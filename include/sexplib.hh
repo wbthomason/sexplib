@@ -17,8 +17,9 @@ T t, const std::string::const_iterator& start, const std::string::const_iterator
   { t.end_list() } -> std::same_as<T*>;
   // clang-format on
 };
+
 namespace {
-  void
+  [[maybe_unused]] void
   skip_until_non_blank(std::string::const_iterator& it, const std::string::const_iterator& end) {
     while (it != end) {
       switch (*it) {
