@@ -241,8 +241,9 @@ struct Sexp {
     return std::nullopt;
   }
 
+  Sexp& get_child(unsigned int n) { return (*tail)[n]; }
+
  private:
   Sexp* parent;
 };
-
 }  // namespace sexp
