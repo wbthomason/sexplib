@@ -144,7 +144,7 @@ struct VectorSexp {
     return this;
   }
 
-  std::optional<VectorSexp*> find(const std::string& path) {
+  std::optional<const VectorSexp*> find(const std::string& path) const {
     const auto first_slash = path.find('/');
     if (first_slash == std::string::npos ||
         std::holds_alternative<std::vector<VectorSexp>>(data)) {
@@ -216,7 +216,7 @@ struct Sexp {
     return this;
   }
 
-  std::optional<Sexp*> find(const std::string& path) {
+  std::optional<const Sexp*> find(const std::string& path) const {
     if (head) {
       const auto first_slash = path.find('/');
       const auto current_key =
