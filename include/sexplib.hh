@@ -13,7 +13,8 @@ template <typename T>
 concept Deserializable = std::default_initializable<T>&& requires(
 T t, const std::string::const_iterator& start, const std::string::const_iterator& end) {
   // clang-format off
-  { t.push_atom(start, end) } -> std::same_as<void>; { t.start_list() } -> std::same_as<T*>;
+  { t.push_atom(start, end) } -> std::same_as<void>;
+  { t.start_list() } -> std::same_as<T*>;
   { t.end_list() } -> std::same_as<T*>;
   // clang-format on
 };
