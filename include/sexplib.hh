@@ -10,8 +10,8 @@
 
 namespace sexp {
 template <typename T>
-concept Deserializable = std::default_initializable<T>&& requires(
-T t, const std::string::const_iterator& start, const std::string::const_iterator& end) {
+concept Deserializable = std::default_initializable<T> &&
+requires(T t, const std::string::const_iterator& start, const std::string::const_iterator& end) {
   // clang-format off
   { t.push_atom(start, end) } -> std::same_as<void>;
   { t.start_list() } -> std::same_as<T*>;
@@ -20,8 +20,8 @@ T t, const std::string::const_iterator& start, const std::string::const_iterator
 };
 
 namespace {
-  [[maybe_unused]] void
-  skip_until_non_blank(std::string::const_iterator& it, const std::string::const_iterator& end) {
+  [[maybe_unused]] void skip_until_non_blank(std::string::const_iterator & it,
+                                             const std::string::const_iterator& end) {
     while (it != end) {
       switch (*it) {
         case ' ':
@@ -216,27 +216,54 @@ struct Sexp {
     return this;
   }
 
-  std::optional<const Sexp*> find(const std::string& path) const {
-    if (head) {
-      const auto first_slash = path.find('/');
-      const auto current_key =
-      std::string_view(path.begin(),
-                       first_slash == std::string::npos ? path.end() : path.begin() + first_slash);
-      if (*head == current_key) {
-        if (first_slash == std::string::npos) {
-          return this;
-        }
+  struct SexpIterator {
+    const Sexp& operator*() const {
+      if (singleton_result) {
+        return **singleton_result;
+      }
 
-        if (tail) {
-          const auto remaining_path = path.substr(first_slash + 1);
-          for (auto& child : *tail) {
-            const auto child_result = child.find(remaining_path);
-            if (child_result) {
-              return child_result;
-            }
+      return *current_it.value();
+    }
+
+    void operator++() {
+      if (key && *current_it != *end_it) {
+        auto& curr = *current_it;
+        auto& end  = *end_it;
+        ++curr;
+        while (curr != end) {
+          if (curr->head.value() == key) {
+            return;
           }
+
+          ++curr;
         }
       }
+    }
+    bool done() const { return singleton_result || current_it.value() == end_it.value(); }
+    SexpIterator(std::string_view key,
+                 std::vector<Sexp>::const_iterator current_it,
+                 std::vector<Sexp>::const_iterator end_it)
+    : singleton_result(std::nullopt), key(key), current_it(current_it), end_it(end_it) {}
+    SexpIterator(const Sexp* const singleton_result)
+    : singleton_result(singleton_result)
+    , key(std::nullopt)
+    , current_it(std::nullopt)
+    , end_it(std::nullopt) {}
+
+   private:
+    std::optional<const Sexp*> singleton_result;
+    std::optional<std::string_view> key;
+    std::optional<std::vector<Sexp>::const_iterator> current_it;
+    std::optional<std::vector<Sexp>::const_iterator> end_it;
+  };
+
+  std::optional<const Sexp*> find_first(const std::string& path) const { return find(path).first; }
+  std::optional<SexpIterator> find_all(const std::string& path) const {
+    const auto results = find(path);
+
+
+    if (results_range) {
+      return SexpIterator(results_range->first, results_range->second);
     }
 
     return std::nullopt;
@@ -246,5 +273,38 @@ struct Sexp {
 
  private:
   Sexp* parent;
+  std::pair<
+  std::optional<const Sexp*>,
+  std::optional<std::pair<std::vector<Sexp>::const_iterator, std::vector<Sexp>::const_iterator>>>
+  find(const std::string& path) const {
+    if (head) {
+      const auto first_slash = path.find('/');
+      const auto current_key =
+      std::string_view(path.begin(),
+                       first_slash == std::string::npos ? path.end() : path.begin() + first_slash);
+      if (*head == current_key) {
+        if (first_slash == std::string::npos) {
+          return {this, std::nullopt};
+        }
+
+        if (tail) {
+          const auto remaining_path = path.substr(first_slash + 1);
+          for (auto child_it = tail->begin(); child_it != tail->end(); ++child_it) {
+            const auto child_result = child_it->find(remaining_path);
+            if (child_result.first) {
+              if (child_result.second) {
+                return child_result;
+              }
+
+              return {std::move(child_result.first),
+                      std::make_pair(std::move(child_it), tail->end())};
+            }
+          }
+        }
+      }
+    }
+
+    return {std::nullopt, std::nullopt};
+  }
 };
 }  // namespace sexp
