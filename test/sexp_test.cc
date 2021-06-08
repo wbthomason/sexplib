@@ -56,10 +56,10 @@ TEST_CASE("We can parse a flat s-expression") {
 }
 
 TEST_CASE("Find works for flat s-expressions") {
-  const std::string sexp_data          = "(foo bar baz bax 5.3 \"hello\" \"\\\"there you\" :bam)";
-  auto result = sexp::parse<S>(sexp_data);
-  auto find_1 = result.find("foo/bar");
-  auto find_2 = result.find("foo/:bam");
+  const std::string sexp_data = "(foo bar baz bax 5.3 \"hello\" \"\\\"there you\" :bam)";
+  auto result                 = sexp::parse<S>(sexp_data);
+  auto find_1                 = result.find_first("foo/bar");
+  auto find_2                 = result.find_first("foo/:bam");
   REQUIRE(find_1);
   REQUIRE(*find_1 == &(*result.tail)[0]);
   REQUIRE(find_2);
@@ -104,16 +104,44 @@ TEST_CASE("We can parse nested s-expressions") {
 
 TEST_CASE("Find works for nested s-expressions") {
   const std::string sexp_data = "(foo (bar baz (bax 5.3) \"hello\") \"\\\"there you\" :bam)";
-  auto result = sexp::parse<S>(sexp_data);
-  auto find_1 = result.find("foo/bar");
-  auto find_2 = result.find("foo/bar/bax");
-  auto find_3 = result.find("foo/:bam");
+  auto result                 = sexp::parse<S>(sexp_data);
+  auto find_1                 = result.find_first("foo/bar");
+  auto find_2                 = result.find_first("foo/bar/bax");
+  auto find_3                 = result.find_first("foo/:bam");
   REQUIRE(find_1);
   REQUIRE(*find_1 == &result.tail->at(0));
   REQUIRE(find_2);
   REQUIRE(*find_2 == &result.tail->at(0).tail->at(1));
   REQUIRE(find_3);
   REQUIRE(*find_3 == &(*result.tail)[2]);
+}
+
+TEST_CASE("find_all finds all instances of a path correctly") {
+  const std::string sexp_data =
+  "(foo (bar baz (bax 5.3) (bax 6.7) (bax 10) \"hello\") \"\\\"there you\" :bam)";
+  auto result = sexp::parse<S>(sexp_data);
+  auto find_1 = result.find_all("foo");
+  REQUIRE(find_1);
+  auto find_1_result = find_1.value();
+  REQUIRE(&(*find_1_result) == &result);
+  auto find_2 = result.find_all("foo/bar");
+  REQUIRE(find_2);
+  auto find_2_result = find_2.value();
+  REQUIRE(&(*find_2_result) == &result.tail->at(0));
+  auto find_3 = result.find_all("foo/bar/bax");
+  REQUIRE(find_3);
+  auto find_3_result          = find_3.value();
+  unsigned int result_counter = 0;
+  std::array<std::string, 3> result_values{"5.3", "6.7", "10"};
+  while (!find_3_result.done()) {
+    auto& iter_result = *find_3_result;
+    REQUIRE(iter_result.tail);
+    REQUIRE(iter_result.tail->at(0).head.value() == result_values[result_counter]);
+    ++find_3_result;
+    ++result_counter;
+  }
+
+  REQUIRE(result_counter == 3);
 }
 
 TEST_CASE("We can handle unusual whitespace") {

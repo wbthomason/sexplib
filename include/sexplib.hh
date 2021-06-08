@@ -219,7 +219,7 @@ struct Sexp {
   struct SexpIterator {
     const Sexp& operator*() const {
       if (singleton_result) {
-        return **singleton_result;
+        return *singleton_result.value();
       }
 
       return *current_it.value();
@@ -257,13 +257,18 @@ struct Sexp {
     std::optional<std::vector<Sexp>::const_iterator> end_it;
   };
 
-  std::optional<const Sexp*> find_first(const std::string& path) const { return find(path).first; }
+  std::optional<const Sexp*> find_first(const std::string& path) const {
+    return std::get<0>(find(path));
+  }
+
   std::optional<SexpIterator> find_all(const std::string& path) const {
-    const auto results = find(path);
+    const auto& [result_sexp, key, iterators] = find(path);
+    if (result_sexp) {
+      if (iterators) {
+        return SexpIterator(key.value(), iterators->first, iterators->second);
+      }
 
-
-    if (results_range) {
-      return SexpIterator(results_range->first, results_range->second);
+      return SexpIterator(result_sexp.value());
     }
 
     return std::nullopt;
@@ -273,8 +278,9 @@ struct Sexp {
 
  private:
   Sexp* parent;
-  std::pair<
+  std::tuple<
   std::optional<const Sexp*>,
+  std::optional<std::string_view>,
   std::optional<std::pair<std::vector<Sexp>::const_iterator, std::vector<Sexp>::const_iterator>>>
   find(const std::string& path) const {
     if (head) {
@@ -284,19 +290,21 @@ struct Sexp {
                        first_slash == std::string::npos ? path.end() : path.begin() + first_slash);
       if (*head == current_key) {
         if (first_slash == std::string::npos) {
-          return {this, std::nullopt};
+          return {this, current_key, std::nullopt};
         }
 
         if (tail) {
           const auto remaining_path = path.substr(first_slash + 1);
           for (auto child_it = tail->begin(); child_it != tail->end(); ++child_it) {
-            const auto child_result = child_it->find(remaining_path);
-            if (child_result.first) {
-              if (child_result.second) {
+            const auto child_result                   = child_it->find(remaining_path);
+            const auto& [result_sexp, key, iterators] = child_result;
+            if (result_sexp) {
+              if (iterators) {
                 return child_result;
               }
 
-              return {std::move(child_result.first),
+              return {std::move(result_sexp),
+                      std::move(key),
                       std::make_pair(std::move(child_it), tail->end())};
             }
           }
@@ -304,7 +312,7 @@ struct Sexp {
       }
     }
 
-    return {std::nullopt, std::nullopt};
+    return {std::nullopt, std::nullopt, std::nullopt};
   }
 };
 }  // namespace sexp
