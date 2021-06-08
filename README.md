@@ -14,3 +14,8 @@ The main functionality is the `sexp::parse` function, which takes a string conta
 `parse` will build the `Deserializable` datatype you call it with from your s-expression, and return the result. Precisely how this datatype is built depends on your implementation of the functions required by `Deserializable`; this is the "coolness" of `sexplib`, that it makes it easy to parse s-expressions into specialized structures.
 
 `sexplib` provides two example implementations: `sexp::Sexp` is the recommended default, and uses `std::optional` with a `head` atom and a `tail` list of `Sexp` to model the s-expression. If enabled by including `#define SEXPLIB_USE_VECTORSEXP`, the `sexp::VectorSexp` type is an alternative, based around `std::variant`. See `sexplib.hh` or the files in `test/` for examples of use.
+
+## TODO
+- [ ] Implement `find_all` for `VectorSexp`
+- [ ] Add more example types satisfying `Deserializable`
+- [ ] Add more utility functions to s-expression types and iterators
