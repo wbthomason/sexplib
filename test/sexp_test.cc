@@ -118,7 +118,7 @@ TEST_CASE("Find works for nested s-expressions") {
 
 TEST_CASE("find_all finds all instances of a path correctly") {
   const std::string sexp_data =
-  "(foo (bar baz (bax 5.3) (bax 6.7) (bax 10) \"hello\") \"\\\"there you\" :bam)";
+  "(foo (bar baz (bax 5.3) (bax 6.7) (bax 10) \"hello\") (bax \"oh no\") \"\\\"there you\" :bam)";
   auto result = sexp::parse<S>(sexp_data);
   auto find_1 = result.find_all("foo");
   REQUIRE(find_1);
