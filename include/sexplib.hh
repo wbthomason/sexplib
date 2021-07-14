@@ -316,3 +316,34 @@ struct Sexp {
   }
 };
 }  // namespace sexp
+
+#ifdef SEXPLIB_USE_FMT
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+#include <string>
+
+template <> struct fmt::formatter<sexp::Sexp> {
+  static size_t indent_depth;
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.end(); }
+  template <typename FormatContext>
+  auto format(const sexp::Sexp& s, FormatContext& ctx) -> decltype(ctx.out()) {
+    std::string prefix(2 * indent_depth, ' ');
+    std::string tail_str = "no tail";
+    if (s.tail) {
+      indent_depth += 1;
+      tail_str = fmt::format("{} tail:\n{}", prefix, fmt::join(s.tail.value(), "\n"));
+      indent_depth -= 1;
+    }
+
+    return format_to(ctx.out(),
+                     "{}({}{}{}{})",
+                     prefix,
+                     s.head ? "head: " : "",
+                     s.head.value_or("no head"),
+                     s.tail ? "\n" : ", ",
+                     tail_str);
+  }
+};
+
+size_t fmt::formatter<sexp::Sexp>::indent_depth = 0;
+#endif

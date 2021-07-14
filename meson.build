@@ -6,8 +6,17 @@ if get_option('buildtype') == 'release'
 endif
 
 catch2 = dependency('catch2')
+fmt = dependency('fmt', required: false)
 
-sexplib_dep = declare_dependency(include_directories: include_directories('include'))
+optional_fmt_define = ''
+if fmt.found()
+  optional_fmt_define = '-DSEXPLIB_USE_FMT'
+endif
+
+sexplib_dep = declare_dependency(
+  compile_args: optional_fmt_define,
+  include_directories: include_directories('include')
+)
 
 # Test executables
 vectorsexp_test_exe = executable('vectorsexp_test', 'test/vectorsexp_test.cc', dependencies: [catch2, sexplib_dep])
