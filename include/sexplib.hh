@@ -320,13 +320,14 @@ struct Sexp {
 #ifdef SEXPLIB_USE_FMT
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+
 #include <string>
 
 template <> struct fmt::formatter<sexp::Sexp> {
-  static size_t indent_depth;
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.end(); }
   template <typename FormatContext>
   auto format(const sexp::Sexp& s, FormatContext& ctx) -> decltype(ctx.out()) {
+    static size_t indent_depth = 0;
     std::string prefix(2 * indent_depth, ' ');
     std::string tail_str = "no tail";
     if (s.tail) {
@@ -344,6 +345,4 @@ template <> struct fmt::formatter<sexp::Sexp> {
                      tail_str);
   }
 };
-
-size_t fmt::formatter<sexp::Sexp>::indent_depth = 0;
 #endif
