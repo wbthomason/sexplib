@@ -150,3 +150,22 @@ TEST_CASE("We can handle unusual whitespace") {
   const std::vector<std::string> atoms = {"foo", "bar", "baz", "\" bax\n\tbam \""};
   REQUIRE(flat_all_atoms_equal(atoms, result));
 }
+
+TEST_CASE("We can parse real PDDL") {
+  const std::string sexp_data = "(and (on-surface ?ob ?surf) (arm-empty ?m) (at ?m ?ob))";
+  auto result = sexp::parse<S>(sexp_data);
+  REQUIRE(result.head);
+  REQUIRE(result.head.value() == "and");
+  REQUIRE(result.tail->size() == 3);
+  auto& sub_sexp_1 = result.tail->at(0);
+  REQUIRE(sub_sexp_1.head.value() == "on-surface");
+  REQUIRE(sub_sexp_1.tail->at(0).head.value() == "?ob");
+  REQUIRE(sub_sexp_1.tail->at(1).head.value() == "?surf");
+  auto& sub_sexp_2 = result.tail->at(1);
+  REQUIRE(sub_sexp_2.head.value() == "arm-empty");
+  REQUIRE(sub_sexp_2.tail->at(0).head.value() == "?m");
+  auto& sub_sexp_3 = result.tail->at(2);
+  REQUIRE(sub_sexp_3.head.value() == "at");
+  REQUIRE(sub_sexp_3.tail->at(0).head.value() == "?m");
+  REQUIRE(sub_sexp_3.tail->at(1).head.value() == "?ob");
+}
