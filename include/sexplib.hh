@@ -119,8 +119,7 @@ struct VectorSexp {
              std::variant<std::string_view, std::vector<VectorSexp>>&& data) noexcept
   : data(data), parent(parent) {}
 
-  void
-  push_atom(const std::string::const_iterator& start, const std::string::const_iterator& end) {
+  void push_atom(const std::string::const_iterator& start, const std::string::const_iterator& end) {
     assert(std::holds_alternative<std::vector<VectorSexp>>(data));
     std::get_if<std::vector<VectorSexp>>(&data)->emplace_back(this, std::string_view(start, end));
   }
@@ -146,8 +145,7 @@ struct VectorSexp {
 
   std::optional<const VectorSexp*> find(const std::string& path) const {
     const auto first_slash = path.find('/');
-    if (first_slash == std::string::npos ||
-        std::holds_alternative<std::vector<VectorSexp>>(data)) {
+    if (first_slash == std::string::npos || std::holds_alternative<std::vector<VectorSexp>>(data)) {
       const auto current_key =
       std::string_view(path.begin(),
                        first_slash == std::string::npos ? path.end() : path.begin() + first_slash);
@@ -177,20 +175,19 @@ struct VectorSexp {
 #endif
 
 struct Sexp {
-  std::optional<std::string_view> head;
+  std::optional<std::string> head;
   std::optional<std::vector<Sexp>> tail;
   Sexp() noexcept : head(), tail(std::nullopt), parent(nullptr) {}
   Sexp(Sexp* parent) noexcept : head(), tail(std::nullopt), parent(parent) {}
-  Sexp(Sexp* parent, std::string_view head) : head(head), tail(std::nullopt), parent(parent) {}
+  Sexp(Sexp* parent, std::string head) : head(head), tail(std::nullopt), parent(parent) {}
 
-  void
-  push_atom(const std::string::const_iterator& start, const std::string::const_iterator& end) {
+  void push_atom(const std::string::const_iterator& start, const std::string::const_iterator& end) {
     if (!head) {
       head.emplace(start, end);
     } else if (!tail) {
-      tail.emplace({Sexp(this, std::string_view(start, end))});
+      tail.emplace({Sexp(this, std::string(start, end))});
     } else {
-      tail->emplace_back(Sexp(this, std::string_view(start, end)));
+      tail->emplace_back(Sexp(this, std::string(start, end)));
     }
   }
 
@@ -226,12 +223,12 @@ struct Sexp {
     }
 
     void operator++() {
-      if (key && *current_it != *end_it) {
-        auto& curr = *current_it;
-        auto& end  = *end_it;
+      auto& curr      = *current_it;
+      const auto& end = *end_it;
+      if (key && curr != end) {
         ++curr;
         while (curr != end) {
-          if (curr->head.value() == key) {
+          if (curr->head.value() == *key) {
             return;
           }
 
@@ -240,7 +237,7 @@ struct Sexp {
       }
     }
     bool done() const { return singleton_result || current_it.value() == end_it.value(); }
-    SexpIterator(std::string_view key,
+    SexpIterator(std::string key,
                  std::vector<Sexp>::const_iterator current_it,
                  std::vector<Sexp>::const_iterator end_it)
     : singleton_result(std::nullopt), key(key), current_it(current_it), end_it(end_it) {}
@@ -252,7 +249,7 @@ struct Sexp {
 
    private:
     std::optional<const Sexp*> singleton_result;
-    std::optional<std::string_view> key;
+    std::optional<std::string> key;
     std::optional<std::vector<Sexp>::const_iterator> current_it;
     std::optional<std::vector<Sexp>::const_iterator> end_it;
   };
@@ -280,13 +277,13 @@ struct Sexp {
   Sexp* parent;
   std::tuple<
   std::optional<const Sexp*>,
-  std::optional<std::string_view>,
+  std::optional<std::string>,
   std::optional<std::pair<std::vector<Sexp>::const_iterator, std::vector<Sexp>::const_iterator>>>
   find(const std::string& path) const {
     if (head) {
       const auto first_slash = path.find('/');
       const auto current_key =
-      std::string_view(path.begin(),
+      std::string(path.begin(),
                        first_slash == std::string::npos ? path.end() : path.begin() + first_slash);
       if (*head == current_key) {
         if (first_slash == std::string::npos) {
@@ -296,16 +293,14 @@ struct Sexp {
         if (tail) {
           const auto remaining_path = path.substr(first_slash + 1);
           for (auto child_it = tail->begin(); child_it != tail->end(); ++child_it) {
-            const auto child_result                   = child_it->find(remaining_path);
+            const auto child_result = child_it->find(remaining_path);
             const auto& [result_sexp, key, iterators] = child_result;
             if (result_sexp) {
               if (iterators) {
                 return child_result;
               }
 
-              return {std::move(result_sexp),
-                      std::move(key),
-                      std::make_pair(std::move(child_it), tail->end())};
+              return {result_sexp, key, std::make_pair(child_it, tail->end())};
             }
           }
         }
