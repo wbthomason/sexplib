@@ -22,7 +22,7 @@ requires(T t, const std::string::const_iterator& start, const std::string::const
 namespace {
   [[maybe_unused]] void skip_until_non_blank(std::string::const_iterator & it,
                                              const std::string::const_iterator& end) {
-    while (it != end) {
+    while (it < end) {
       switch (*it) {
         case ' ':
         case '\t':
